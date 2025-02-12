@@ -12,7 +12,7 @@
 <p>Birth Date: <span th:text="${user.birthDate}"></span></p>
 <p>Role: <span th:text="${user.role}"></span></p>
 <div class="links">
-    <a th:href="@{/user/edit/{id}(id=${user.id})}">Edit</a> | <a th:href="@{/logout}">Logout</a>
+    <a th:href="@{/user/edit/{id}(id=${user.id})}">Edit</a> / <a th:href="@{/logout}">Logout</a>
 </div>
 </body>
 </html>

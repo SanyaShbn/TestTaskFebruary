@@ -4,6 +4,8 @@ import com.example.testtaskfebruary.dao.UserDao;
 import com.example.testtaskfebruary.dto.UserCreateEditDto;
 import com.example.testtaskfebruary.dto.UserReadDto;
 import com.example.testtaskfebruary.entity.User;
+import com.example.testtaskfebruary.exception.DaoException;
+import com.example.testtaskfebruary.exception.EmailAlreadyExistsException;
 import com.example.testtaskfebruary.mapper.UserMapper;
 import com.example.testtaskfebruary.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +24,6 @@ public class UserService {
 
     private final UserMapper userMapper;
 
-    public List<UserReadDto> getAllUsers() {
-        return userDao.findAll().stream()
-                .map(userMapper::userToUserReadDto)
-                .collect(Collectors.toList());
-    }
-
     public Optional<UserReadDto> findById(Long id) {
         return userDao.findById(id)
                 .map(userMapper::userToUserReadDto);
@@ -40,6 +36,9 @@ public class UserService {
 
     @Transactional
     public void saveUser(UserCreateEditDto userCreateEditDto) {
+        if (userDao.findByEmail(userCreateEditDto.getEmail()).isPresent()) {
+            throw new EmailAlreadyExistsException("Email already exists");
+        }
         User user = userMapper.userCreateEditDtoToUser(userCreateEditDto);
         user.setPassword(PasswordUtil.hashPassword(user.getPassword()));
         userDao.save(user);
@@ -47,20 +46,32 @@ public class UserService {
 
     @Transactional
     public void updateUser(Long id, UserCreateEditDto userCreateEditDto) {
-        User user = userMapper.userCreateEditDtoToUser(userCreateEditDto);
-        user.setId(id);
-        user.setPassword(PasswordUtil.hashPassword(user.getPassword()));
-        userDao.update(user);
+        Optional<User> optionalUserFromDb = userDao.findById(id);
+        if (optionalUserFromDb.isPresent()) {
+            User existingUser = optionalUserFromDb.get();
+            User user = userMapper.userCreateEditDtoToUser(userCreateEditDto);
+            user.setId(id);
+
+            if (userCreateEditDto.getPassword() == null || userCreateEditDto.getPassword().isEmpty()) {
+                user.setPassword(existingUser.getPassword());
+            } else {
+                user.setPassword(PasswordUtil.hashPassword(userCreateEditDto.getPassword()));
+            }
+
+            userDao.update(user);
+        } else {
+            throw new DaoException("User not found with id: " + id);
+        }
     }
 
     @Transactional
-    public boolean deleteUser(Long id) {
+    public void updatePassword(Long id, String password) {
         Optional<User> optionalUser = userDao.findById(id);
         if (optionalUser.isPresent()) {
-            userDao.delete(optionalUser.get());
-            return true;
+            User user = optionalUser.get();
+            user.setPassword(PasswordUtil.hashPassword(password));
+            userDao.update(user);
         }
-        return false;
     }
 
 }

@@ -1,5 +1,6 @@
 package com.example.testtaskfebruary.dto;
 
+import com.example.testtaskfebruary.entity.Role;
 import lombok.Builder;
 import lombok.Value;
 
@@ -14,5 +15,5 @@ public class UserReadDto {
     String firstname;
     String lastname;
     LocalDate birthDate;
-    String role;
+    Role role;
 }

@@ -3,6 +3,8 @@
 <head>
     <title>Edit User</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}" />
+    <link rel="stylesheet" th:href="@{/css/modal_form.css}" />
+    <script src="/js/confirm_password_change_scripts.js"></script>
 </head>
 <body>
 <h1>Edit User</h1>
@@ -21,18 +23,32 @@
     </label>
     <div th:each="role : ${roles}">
         <input th:id="${role}" type="radio" name="role" th:value="${role}"
-               th:checked="${role == userCreateEditDto.role}">
+               th:checked="${role.equals(userCreateEditDto.role)}">
         <label th:for="${role}" th:text="${role}">Role name</label>
     </div>
     <button type="submit">Update</button>
-    <a href="#" onclick="document.getElementById('passwordChangeForm').style.display='block'">Change Password</a>
-    <form id="passwordChangeForm" th:action="@{/user/change-password/{id}(id=${userCreateEditDto.id})}"
-          method="post" style="display:none;">
-        <label>New Password:
-            <input type="password" name="password" /><br/>
-        </label>
-        <button type="submit">Change Password</button>
-    </form>
+    <div th:if="${errors}">
+        <p style="color: red" th:each="error : ${errors}" th:text="${error.defaultMessage}">Dummy error message</p>
+    </div>
 </form>
+<a href="#" onclick="togglePasswordChangeForm()">Change Password</a>
+<form id="passwordChangeForm" th:action="@{/user/change-password/{id}(id=${userCreateEditDto.id})}"
+      method="post" style="display:none;">
+    <label>New Password: <input type="password" id="passwordInput" name="password" /><br/></label>
+    <button type="button" onclick="openModal()">Change Password</button>
+    <br/>
+    <br/>
+    <button type="button" onclick="togglePasswordChangeForm()">Cancel</button>
+</form>
+
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <p>Are you sure you want to change the password? If you confirm, you will be redirected into home page and will have to log in again</p>
+        <button onclick="confirmPasswordChange()">Yes</button>
+        <br/>
+        <br/>
+        <button onclick="closeModal()">No</button>
+    </div>
+</div>
 </body>
 </html>
