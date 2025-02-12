@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.HibernateException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public abstract class AbstractHibernateDao<T> {
@@ -32,9 +33,9 @@ public abstract class AbstractHibernateDao<T> {
         }
     }
 
-    public T findById(Long id) {
+    public Optional<T> findById(Long id) {
         try {
-            return entityManager.find(entityClass, id);
+            return Optional.ofNullable(entityManager.find(entityClass, id));
         } catch (HibernateException e) {
             log.error("Failed to find entity by ID: {}", id, e);
             throw new DaoException("Failed to find entity by ID", e);

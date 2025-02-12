@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Edit User</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+<h1>Edit User</h1>
+<form th:action="@{/user/edit/{id}(id=${userCreateEditDto.id})}" th:object="${userCreateEditDto}" method="post">
+    <label>Email:
+        <input type="text" th:field="*{email}" readonly/><br/>
+    </label>
+    <label>First Name:
+        <input type="text" th:field="*{firstname}" /><br/>
+    </label>
+    <label>Last Name:
+        <input type="text" th:field="*{lastname}" /><br/>
+    </label>
+    <label>Birth Date:
+        <input type="date" th:field="*{birthDate}"/><br/>
+    </label>
+    <div th:each="role : ${roles}">
+        <input th:id="${role}" type="radio" name="role" th:value="${role}"
+               th:checked="${role == userCreateEditDto.role}">
+        <label th:for="${role}" th:text="${role}">Role name</label>
+    </div>
+    <button type="submit">Update</button>
+    <a href="#" onclick="document.getElementById('passwordChangeForm').style.display='block'">Change Password</a>
+    <form id="passwordChangeForm" th:action="@{/user/change-password/{id}(id=${userCreateEditDto.id})}"
+          method="post" style="display:none;">
+        <label>New Password:
+            <input type="password" name="password" /><br/>
+        </label>
+        <button type="submit">Change Password</button>
+    </form>
+</form>
+</body>
+</html>

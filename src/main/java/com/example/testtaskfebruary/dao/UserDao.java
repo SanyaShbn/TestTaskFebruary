@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.HibernateException;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Slf4j
 @Repository
 public class UserDao extends AbstractHibernateDao<User> {
@@ -14,14 +16,14 @@ public class UserDao extends AbstractHibernateDao<User> {
         super(User.class);
     }
 
-    public User findByEmail(String email) {
+    public Optional<User> findByEmail(String email) {
         try {
             String hql = "FROM User as usr WHERE usr.email = :email";
             User user = (User) entityManager.createQuery(hql)
                     .setParameter("email", email)
                     .getSingleResult();
             log.info("User found with email: {}", email);
-            return user;
+            return Optional.ofNullable(user);
         } catch (HibernateException e) {
             log.error("Failed to find user by email: {}", email, e);
             throw new DaoException("Failed to find user by email", e);

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>User Account</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+<h1>User Account</h1>
+<p>Email: <span th:text="${user.email}"></span></p>
+<p>First Name: <span th:text="${user.firstname}"></span></p>
+<p>Last Name: <span th:text="${user.lastname}"></span></p>
+<p>Birth Date: <span th:text="${user.birthDate}"></span></p>
+<p>Role: <span th:text="${user.role}"></span></p>
+<div class="links">
+    <a th:href="@{/user/edit/{id}(id=${user.id})}">Edit</a> | <a th:href="@{/logout}">Logout</a>
+</div>
+</body>
+</html>
