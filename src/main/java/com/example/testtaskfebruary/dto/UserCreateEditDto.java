@@ -6,6 +6,9 @@ import lombok.Value;
 
 import java.time.LocalDate;
 
+/**
+ * Data Transfer Object (DTO) for creating or editing a user.
+ */
 @Value
 @Builder
 public class UserCreateEditDto {

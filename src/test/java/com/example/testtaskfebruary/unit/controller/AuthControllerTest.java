@@ -3,130 +3,166 @@ package com.example.testtaskfebruary.unit.controller;
 import com.example.testtaskfebruary.controller.AuthController;
 import com.example.testtaskfebruary.dto.UserCreateEditDto;
 import com.example.testtaskfebruary.dto.UserReadDto;
-
+import com.example.testtaskfebruary.entity.Role;
 import com.example.testtaskfebruary.exception.EmailAlreadyExistsException;
 import com.example.testtaskfebruary.service.UserService;
 import com.example.testtaskfebruary.util.PasswordUtil;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mindrot.jbcrypt.BCrypt;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthControllerTest {
+class AuthControllerTest {
+
+    private static final Long USER_ID = 1L;
+
+    private static final String USER_EMAIL = "test@gmail.com";
+
+    private static final String USER_PASSWORD = "password123";
 
     @Mock
     private UserService userService;
 
+    @Mock
+    private Model model;
+
+    @Mock
+    private BindingResult bindingResult;
+
+    @Mock
+    private RedirectAttributes redirectAttributes;
+
+    @Mock
+    private HttpSession session;
+
     @InjectMocks
     private AuthController authController;
 
-    private MockMvc mockMvc;
+    private UserCreateEditDto userCreateEditDto;
+
+    private UserReadDto userReadDto;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+        userCreateEditDto = UserCreateEditDto.builder().build();
+        userReadDto = UserReadDto.builder()
+                .id(USER_ID)
+                .email(USER_EMAIL)
+                .password(BCrypt.hashpw(USER_PASSWORD, BCrypt.gensalt()))
+                .build();
     }
 
     @Test
-    void testHome() throws Exception {
-        mockMvc.perform(get("/"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("home"));
+    void testHome() {
+        String viewName = authController.home();
+        assertEquals("home", viewName);
     }
 
     @Test
-    void testShowRegistrationForm() throws Exception {
-        mockMvc.perform(get("/register"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("/register"))
-                .andExpect(model().attributeExists("userCreateEditDto"))
-                .andExpect(model().attributeExists("roles"));
+    void testShowRegistrationForm() {
+        String viewName = authController.showRegistrationForm(model);
+        verify(model).addAttribute(eq("userCreateEditDto"), any(UserCreateEditDto.class));
+        verify(model).addAttribute(eq("roles"), eq(Role.values()));
+        assertEquals("register", viewName);
     }
 
     @Test
-    void testRegisterUser() throws Exception {
-        UserCreateEditDto userCreateEditDto = UserCreateEditDto.builder().build();
-        doNothing().when(userService).saveUser(any(UserCreateEditDto.class));
+    void testRegisterUser_BindingErrors() {
+        when(bindingResult.hasErrors()).thenReturn(true);
 
-        mockMvc.perform(post("/register")
-                        .flashAttr("userCreateEditDto", userCreateEditDto))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/login"));
+        String viewName = authController.registerUser(userCreateEditDto, bindingResult, redirectAttributes);
 
-        verify(userService, times(1)).saveUser(any(UserCreateEditDto.class));
+        verify(redirectAttributes).addFlashAttribute("userCreateEditDto", userCreateEditDto);
+        verify(redirectAttributes).addFlashAttribute("errors", bindingResult.getAllErrors());
+        assertEquals("redirect:/register", viewName);
     }
 
     @Test
-    void testRegisterUserEmailAlreadyExists() throws Exception {
-        UserCreateEditDto userCreateEditDto = UserCreateEditDto.builder().build();
-        doThrow(new EmailAlreadyExistsException("Email already exists")).when(userService).saveUser(any(UserCreateEditDto.class));
+    void testRegisterUser_EmailAlreadyExists() throws EmailAlreadyExistsException {
+        when(bindingResult.hasErrors()).thenReturn(false);
+        doThrow(new EmailAlreadyExistsException("Email already exists")).when(userService).saveUser(userCreateEditDto);
 
-        mockMvc.perform(post("/register")
-                        .flashAttr("userCreateEditDto", userCreateEditDto))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/register"));
+        String viewName = authController.registerUser(userCreateEditDto, bindingResult, redirectAttributes);
 
-        verify(userService, times(1)).saveUser(any(UserCreateEditDto.class));
+        verify(redirectAttributes).addFlashAttribute("userCreateEditDto", userCreateEditDto);
+        verify(redirectAttributes).addFlashAttribute("error", "Email already exists");
+        assertEquals("redirect:/register", viewName);
     }
 
     @Test
-    void testShowLoginForm() throws Exception {
-        mockMvc.perform(get("/login"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"));
+    void testRegisterUser_Success() throws EmailAlreadyExistsException {
+        when(bindingResult.hasErrors()).thenReturn(false);
+
+        String viewName = authController.registerUser(userCreateEditDto, bindingResult, redirectAttributes);
+
+        verify(userService).saveUser(userCreateEditDto);
+        assertEquals("redirect:/login", viewName);
     }
 
     @Test
-    void testLoginUser() throws Exception {
+    void testShowLoginForm() {
+        String viewName = authController.showLoginForm();
+        assertEquals("login", viewName);
+    }
+
+    @Test
+    void testLoginUser_Success() {
+        when(userService.findByEmail(USER_EMAIL)).thenReturn(Optional.of(userReadDto));
+        try (MockedStatic<PasswordUtil> mockedStatic = mockStatic(PasswordUtil.class)) {
+            mockedStatic.when(() -> PasswordUtil.checkPassword(USER_PASSWORD, userReadDto.getPassword())).thenReturn(true);
+
+            String viewName = authController.loginUser(USER_EMAIL, USER_PASSWORD, model, session);
+
+            verify(session).setAttribute("user", userReadDto);
+            verify(model).addAttribute("user", userReadDto);
+            assertEquals("redirect:/user/" + USER_ID, viewName);
+        }
+    }
+
+    @Test
+    void testLoginUser_InvalidCredentials() {
         String email = "test@example.com";
-        String password = "password";
-        UserReadDto userReadDto = UserReadDto.builder().id(1L).email(email).password(PasswordUtil.hashPassword(password)).build();
+        String password = "wrongpassword";
+
+        UserReadDto userReadDto = UserReadDto.builder()
+                .id(USER_ID)
+                .email(email)
+                .password(BCrypt.hashpw(password, BCrypt.gensalt()))
+                .build();
 
         when(userService.findByEmail(email)).thenReturn(Optional.of(userReadDto));
-        when(PasswordUtil.checkPassword(password, userReadDto.getPassword())).thenReturn(true);
 
-        mockMvc.perform(post("/login")
-                        .param("email", email)
-                        .param("password", password)
-                        .sessionAttr("user", userReadDto))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/" + userReadDto.getId()));
+        try (MockedStatic<PasswordUtil> mockedStatic = mockStatic(PasswordUtil.class)) {
+            mockedStatic.when(() -> PasswordUtil.checkPassword(password, userReadDto.getPassword())).thenReturn(false);
 
-        verify(userService, times(1)).findByEmail(email);
+            String viewName = authController.loginUser(email, password, model, session);
+
+            verify(model).addAttribute("error", "Invalid email or password");
+            assertEquals("login", viewName);
+        }
     }
 
     @Test
-    void testLoginUserInvalidCredentials() throws Exception {
-        String email = "test@example.com";
-        String password = "password";
+    void testLogout() {
+        String viewName = authController.logout(session);
 
-        when(userService.findByEmail(email)).thenReturn(Optional.empty());
-
-        mockMvc.perform(post("/login")
-                        .param("email", email)
-                        .param("password", password))
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(model().attributeExists("error"));
-
-        verify(userService, times(1)).findByEmail(email);
+        verify(session).invalidate();
+        assertEquals("redirect:/", viewName);
     }
 
-    @Test
-    void testLogout() throws Exception {
-        mockMvc.perform(get("/logout"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/"));
-    }
 }
+

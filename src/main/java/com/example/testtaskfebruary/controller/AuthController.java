@@ -20,26 +20,48 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Optional;
 
+/**
+ * Controller for handling authentication-related requests.
+ */
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
 
     private final UserService userService;
 
+    /**
+     * Handles requests to the home page.
+     *
+     * @return the view name for the home page
+     */
     @GetMapping("/")
     public String home() {
         return "home";
     }
 
+    /**
+     * Displays the registration form.
+     *
+     * @param model the model to pass attributes to the view
+     * @return the view name for the registration form
+     */
     @GetMapping("/register")
     public String showRegistrationForm(Model model) {
         if (!model.containsAttribute("userCreateEditDto")) {
             model.addAttribute("userCreateEditDto", UserCreateEditDto.builder().build());
         }
         model.addAttribute("roles", Role.values());
-        return "/register";
+        return "register";
     }
 
+    /**
+     * Handles user registration.
+     *
+     * @param userCreateEditDto the DTO containing user information
+     * @param bindingResult the result of validation
+     * @param redirectAttributes the attributes for a redirect scenario
+     * @return the view name for redirection after registration
+     */
     @PostMapping("/register")
     public String registerUser(@ModelAttribute @Validated UserCreateEditDto userCreateEditDto,
                                BindingResult bindingResult,
@@ -59,11 +81,25 @@ public class AuthController {
         }
     }
 
+    /**
+     * Displays the login form.
+     *
+     * @return the view name for the login form
+     */
     @GetMapping("/login")
     public String showLoginForm() {
         return "login";
     }
 
+    /**
+     * Handles user login.
+     *
+     * @param email the email address entered by the user
+     * @param password the password entered by the user
+     * @param model the model to pass attributes to the view
+     * @param session the HTTP session
+     * @return the view name for redirection after login
+     */
     @PostMapping("/login")
     public String loginUser(@RequestParam String email,
                             @RequestParam String password,
@@ -81,6 +117,12 @@ public class AuthController {
         }
     }
 
+    /**
+     * Handles user logout.
+     *
+     * @param session the HTTP session
+     * @return the view name for redirection after logout
+     */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

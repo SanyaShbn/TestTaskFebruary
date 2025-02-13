@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
+/**
+ * Entity class representing a user in the system.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

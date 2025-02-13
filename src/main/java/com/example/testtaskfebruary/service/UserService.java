@@ -12,10 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+/**
+ * Service class for handling user-related operations.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -24,16 +25,34 @@ public class UserService {
 
     private final UserMapper userMapper;
 
+    /**
+     * Finds a user by their ID.
+     *
+     * @param id the ID of the user, not null
+     * @return an Optional containing the found {@link UserReadDto}, or an empty Optional if no user was found
+     */
     public Optional<UserReadDto> findById(Long id) {
         return userDao.findById(id)
                 .map(userMapper::userToUserReadDto);
     }
 
+    /**
+     * Finds a user by their email address.
+     *
+     * @param email the email address to search for, not null
+     * @return an Optional containing the found {@link UserReadDto}, or an empty Optional if no user was found
+     */
     public Optional<UserReadDto> findByEmail(String email) {
         return userDao.findByEmail(email)
                 .map(userMapper::userToUserReadDto);
     }
 
+    /**
+     * Saves a new user to the database.
+     *
+     * @param userCreateEditDto the DTO containing user information, not null
+     * @throws EmailAlreadyExistsException if a user with the given email already exists
+     */
     @Transactional
     public void saveUser(UserCreateEditDto userCreateEditDto) {
         if (userDao.findByEmail(userCreateEditDto.getEmail()).isPresent()) {
@@ -44,6 +63,13 @@ public class UserService {
         userDao.save(user);
     }
 
+    /**
+     * Updates an existing user in the database.
+     *
+     * @param id the ID of the user to update, not null
+     * @param userCreateEditDto the DTO containing updated user information, not null
+     * @throws DaoException if the user is not found with the given ID
+     */
     @Transactional
     public void updateUser(Long id, UserCreateEditDto userCreateEditDto) {
         Optional<User> optionalUserFromDb = userDao.findById(id);
@@ -64,6 +90,12 @@ public class UserService {
         }
     }
 
+    /**
+     * Updates the password for an existing user.
+     *
+     * @param id the ID of the user, not null
+     * @param password the new password to set, not null
+     */
     @Transactional
     public void updatePassword(Long id, String password) {
         Optional<User> optionalUser = userDao.findById(id);

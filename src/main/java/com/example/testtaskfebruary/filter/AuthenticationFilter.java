@@ -7,12 +7,24 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
+/**
+ * Filter for authenticating user requests.
+ */
 public class AuthenticationFilter implements Filter {
 
     private static final String LOGIN_URI = "/login";
 
     private static final String USER_ATTRIBUTE = "user";
 
+    /**
+     * Filters incoming requests to check if the user is logged in.
+     *
+     * @param request the ServletRequest object, not null
+     * @param response the ServletResponse object, not null
+     * @param chain the FilterChain object, not null
+     * @throws IOException if an I/O error occurs
+     * @throws ServletException if a servlet error occurs
+     */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {

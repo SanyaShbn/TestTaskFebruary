@@ -8,6 +8,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Data Access Object (DAO) for the {@link User} entity.
+ */
 @Slf4j
 @Repository
 public class UserDao extends AbstractHibernateDao<User> {
@@ -16,6 +19,12 @@ public class UserDao extends AbstractHibernateDao<User> {
         super(User.class);
     }
 
+    /**
+     * Finds a user by their email address.
+     *
+     * @param email the email address to search for, not null
+     * @return an Optional containing the found {@link User}, or an empty Optional if no user was found
+     */
     public Optional<User> findByEmail(String email) {
         try {
             String hql = "FROM User as usr WHERE usr.email = :email";

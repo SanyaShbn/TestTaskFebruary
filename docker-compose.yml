@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:13
+    container_name: test_task_db_container
+    environment:
+      POSTGRES_DB: test_task_february
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  spring-boot-app:
+    build: .
+    container_name: spring_boot_test_task_container
+    depends_on:
+      - db
+    environment:
+      - DB_URL=jdbc:postgresql://db:5432/test_task_february
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=12345
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:

@@ -16,6 +16,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Optional;
 
+/**
+ * Controller for handling user-related requests.
+ */
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/user")
@@ -23,6 +26,14 @@ public class UserController {
 
     private final UserService userService;
 
+    /**
+     * Retrieves a user by their ID and displays the user details.
+     *
+     * @param id the ID of the user, not null
+     * @param model the model to pass attributes to the view
+     * @param session the HTTP session
+     * @return the view name for displaying user details
+     */
     @GetMapping("/{id}")
     public String getUser(@PathVariable Long id, Model model, HttpSession session) {
         try {
@@ -39,6 +50,14 @@ public class UserController {
         }
     }
 
+    /**
+     * Displays the edit form for a user.
+     *
+     * @param id the ID of the user to edit, not null
+     * @param model the model to pass attributes to the view
+     * @param session the HTTP session
+     * @return the view name for the edit form
+     */
     @GetMapping("/edit/{id}")
     public String showEditForm(@PathVariable Long id, Model model, HttpSession session) {
         try {
@@ -58,6 +77,15 @@ public class UserController {
         }
     }
 
+    /**
+     * Updates a user's information.
+     *
+     * @param id the ID of the user to update, not null
+     * @param userCreateEditDto the DTO containing updated user information
+     * @param bindingResult the result of validation
+     * @param redirectAttributes the attributes for a redirect scenario
+     * @return the view name for redirection after updating the user
+     */
     @PostMapping("/edit/{id}")
     public String updateUser(@PathVariable Long id,
                              @ModelAttribute @Validated UserCreateEditDto userCreateEditDto,
@@ -76,6 +104,14 @@ public class UserController {
         }
     }
 
+    /**
+     * Changes a user's password.
+     *
+     * @param id the ID of the user, not null
+     * @param password the new password to set, not null
+     * @param session the HTTP session
+     * @return the view name for redirection after changing the password
+     */
     @PostMapping("/change-password/{id}")
     public String changePassword(@PathVariable Long id, @RequestParam String password, HttpSession session) {
         if (password == null || password.isEmpty()) {

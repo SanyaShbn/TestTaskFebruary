@@ -10,6 +10,11 @@ import org.hibernate.HibernateException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Abstract class that provides basic CRUD operations for entities using Hibernate.
+ *
+ * @param <T> the type of the entity
+ */
 @Slf4j
 public abstract class AbstractHibernateDao<T> {
 
@@ -22,6 +27,12 @@ public abstract class AbstractHibernateDao<T> {
         this.entityClass = entityClass;
     }
 
+    /**
+     * Retrieves all entities of type T.
+     *
+     * @return a list of all entities
+     * @throws DaoException if there is a Hibernate exception
+     */
     public List<T> findAll() {
         try {
             TypedQuery<T> query = entityManager
@@ -33,6 +44,13 @@ public abstract class AbstractHibernateDao<T> {
         }
     }
 
+    /**
+     * Retrieves an entity by its ID.
+     *
+     * @param id the ID of the entity
+     * @return an Optional containing the entity if found, or empty if not found
+     * @throws DaoException if there is a Hibernate exception
+     */
     public Optional<T> findById(Long id) {
         try {
             return Optional.ofNullable(entityManager.find(entityClass, id));
@@ -42,6 +60,12 @@ public abstract class AbstractHibernateDao<T> {
         }
     }
 
+    /**
+     * Saves a new entity.
+     *
+     * @param entity the entity to save
+     * @throws DaoException if there is a Hibernate exception
+     */
     public void save(T entity) {
         try {
             entityManager.persist(entity);
@@ -52,6 +76,12 @@ public abstract class AbstractHibernateDao<T> {
         }
     }
 
+    /**
+     * Updates an existing entity.
+     *
+     * @param entity the entity to update
+     * @throws DaoException if there is a Hibernate exception
+     */
     public void update(T entity) {
         try {
             entityManager.merge(entity);
@@ -62,6 +92,12 @@ public abstract class AbstractHibernateDao<T> {
         }
     }
 
+    /**
+     * Deletes an entity.
+     *
+     * @param entity the entity to delete
+     * @throws DaoException if there is a Hibernate exception
+     */
     public void delete(T entity) {
         try {
             entityManager.remove(entityManager.contains(entity) ? entity : entityManager.merge(entity));

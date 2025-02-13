@@ -3,30 +3,29 @@ package com.example.testtaskfebruary.unit.controller;
 import com.example.testtaskfebruary.controller.UserController;
 import com.example.testtaskfebruary.dto.UserCreateEditDto;
 import com.example.testtaskfebruary.dto.UserReadDto;
+import com.example.testtaskfebruary.entity.Role;
+import com.example.testtaskfebruary.exception.DaoException;
 import com.example.testtaskfebruary.service.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-public class UserControllerTest {
+class UserControllerTest {
 
     private static final Long USER_ID = 1L;
 
@@ -34,83 +33,101 @@ public class UserControllerTest {
     private UserService userService;
 
     @Mock
+    private HttpSession session;
+
+    @Mock
+    private Model model;
+
+    @Mock
     private BindingResult bindingResult;
+
+    @Mock
+    private RedirectAttributes redirectAttributes;
 
     @InjectMocks
     private UserController userController;
 
-    private MockMvc mockMvc;
+    private UserReadDto userReadDto;
 
     @BeforeEach
-    public void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
-    }
-
-    @Test
-    public void testGetUser_Success() throws Exception {
-        UserReadDto userReadDto = UserReadDto.builder()
+    void setUp() {
+        userReadDto = UserReadDto.builder()
                 .id(USER_ID).build();
-
-        when(userService.findById(anyLong())).thenReturn(Optional.of(userReadDto));
-
-        mockMvc.perform(get("/user/" + USER_ID).sessionAttr("user", userReadDto))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeExists("user"));
     }
 
     @Test
-    public void testGetUser_Unauthorized() throws Exception {
-        mockMvc.perform(get("/user/" + USER_ID))
-                .andExpect(redirectedUrl("/error"));
+    void testGetUser_UserExists() {
+        when(session.getAttribute("user")).thenReturn(userReadDto);
+        when(userService.findById(USER_ID)).thenReturn(Optional.of(userReadDto));
+
+        String viewName = userController.getUser(USER_ID, model, session);
+
+        verify(model).addAttribute("user", userReadDto);
+        assertEquals("user", viewName);
     }
 
     @Test
-    public void testShowEditForm_Success() throws Exception {
-        UserReadDto userReadDto = UserReadDto.builder()
-                .id(USER_ID).build();
+    void testGetUser_UserNotFound() {
+        when(session.getAttribute("user")).thenReturn(userReadDto);
+        when(userService.findById(USER_ID)).thenReturn(Optional.empty());
 
-        when(userService.findById(anyLong())).thenReturn(Optional.of(userReadDto));
+        String viewName = userController.getUser(USER_ID, model, session);
 
-        mockMvc.perform(get("/user/edit/" + USER_ID).sessionAttr("user", userReadDto))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeExists("userCreateEditDto"))
-                .andExpect(model().attributeExists("roles"));
+        assertEquals("redirect:/error", viewName);
     }
 
     @Test
-    void testUpdateUser_Successful() throws Exception {
+    void testShowEditForm_UserExists() {
+        when(session.getAttribute("user")).thenReturn(userReadDto);
+        when(userService.findById(USER_ID)).thenReturn(Optional.of(userReadDto));
+
+        String viewName = userController.showEditForm(USER_ID, model, session);
+
+        verify(model).addAttribute("userCreateEditDto", userReadDto);
+        verify(model).addAttribute("roles", Role.values());
+        assertEquals("edit", viewName);
+    }
+
+    @Test
+    void testUpdateUser_BindingErrors() {
+        when(bindingResult.hasErrors()).thenReturn(true);
+
+        String viewName = userController.updateUser(USER_ID, UserCreateEditDto.builder().build(),
+                bindingResult, redirectAttributes);
+
+        verify(redirectAttributes).addFlashAttribute(eq("errors"), any());
+        assertEquals("redirect:/user/edit/" + USER_ID, viewName);
+    }
+
+    @Test
+    void testUpdateUser_DaoException() throws DaoException {
         when(bindingResult.hasErrors()).thenReturn(false);
+        UserCreateEditDto userCreateEditDto = UserCreateEditDto.builder().build();
 
-        mockMvc.perform(post("/user/edit/1")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .param("email", "test@example.com")
-                        .param("firstname", "Test User"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/user/1"));
+        doThrow(new DaoException("Error updating user")).when(userService).updateUser(eq(USER_ID), any());
 
-        verify(userService, times(1)).updateUser(eq(1L), any(UserCreateEditDto.class));
+        String viewName = userController.updateUser(USER_ID, userCreateEditDto, bindingResult,
+                redirectAttributes);
+
+        verify(redirectAttributes).addFlashAttribute("errors", "Error updating user");
+        assertEquals("redirect:/user/edit/" + USER_ID, viewName);
     }
 
     @Test
-    public void testChangePassword_Success() throws Exception {
-        UserReadDto userReadDto = UserReadDto.builder()
-                .id(USER_ID).build();
+    void testChangePassword_EmptyPassword() {
+        String viewName = userController.changePassword(USER_ID, "", session);
 
-        doNothing().when(userService).updatePassword(anyLong(), anyString());
-
-        mockMvc.perform(post("/user/change-password/" + USER_ID)
-                        .param("password", "newPassword")
-                        .sessionAttr("user", userReadDto))
-                .andExpect(redirectedUrl("/logout"));
-
-        verify(userService).updatePassword(anyLong(), anyString());
+        assertEquals("redirect:/user/edit/" + USER_ID, viewName);
     }
 
     @Test
-    public void testChangePassword_EmptyPassword() throws Exception {
-        mockMvc.perform(post("/user/change-password/"  +USER_ID).param("password", ""))
-                .andExpect(redirectedUrl("/user/edit/" + USER_ID));
+    void testChangePassword_Success() {
+        String newPassword = "newPassword123";
 
-        verify(userService, never()).updatePassword(anyLong(), anyString());
+        String viewName = userController.changePassword(USER_ID, newPassword, session);
+
+        verify(userService).updatePassword(USER_ID, newPassword);
+        verify(session).invalidate();
+        assertEquals("redirect:/logout", viewName);
     }
 }

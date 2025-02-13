@@ -6,6 +6,9 @@ import lombok.Value;
 
 import java.time.LocalDate;
 
+/**
+ * Data Transfer Object (DTO) for getting user info.
+ */
 @Value
 @Builder
 public class UserReadDto {
