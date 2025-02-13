@@ -10,6 +10,12 @@ First, clone the project repository:
 https://github.com/SanyaShbn/TestTaskFebruary.git
 ```
 
+Build the project locally using maven:
+
+```
+maven clean install
+```
+
 To start docker-compose:
 
 ```
